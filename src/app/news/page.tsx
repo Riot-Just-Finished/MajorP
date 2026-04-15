@@ -27,6 +27,10 @@ export default function NewsReaderPage() {
   const [loadingArticle, setLoadingArticle] = useState(false);
   const [articleError, setArticleError] = useState("");
 
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [aiFeedback, setAiFeedback] = useState<{ type: string, content: string } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   useEffect(() => {
     async function fetchHeadlines() {
       try {
@@ -50,6 +54,8 @@ export default function NewsReaderPage() {
     setLoadingArticle(true);
     setArticleError("");
     setActiveArticleData(null);
+    setAiFeedback(null);
+    setAiError(null);
 
     try {
       const res = await fetch(`/api/article?url=${encodeURIComponent(headline.url)}`);
@@ -65,6 +71,48 @@ export default function NewsReaderPage() {
       setArticleError(err.message || "Failed to load article");
     } finally {
       setLoadingArticle(false);
+    }
+  }
+
+  async function handleAIAction(action: "political_stance" | "summarise" | "change_tone") {
+    if (!activeArticleData?.textContent) return;
+    
+    setAiLoading(action);
+    setAiError(null);
+
+    // If change_tone, clear existing feedback panel since we inject directly into body
+    if (action === "change_tone") {
+      setAiFeedback(null);
+    }
+
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          articleText: activeArticleData.textContent,
+          title: activeHeadline?.title || "Article"
+        })
+      });
+
+      const responseData = await res.json();
+      
+      if (!res.ok || responseData.error) {
+        throw new Error(responseData.error || "AI processing failed");
+      }
+
+      if (action === "change_tone") {
+         setActiveArticleData(prev => prev ? { ...prev, content: responseData.result } : prev);
+      } else {
+         setAiFeedback({ type: action, content: responseData.result });
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.message || "Failed to connect to AI engine.");
+    } finally {
+      setAiLoading(null);
     }
   }
 
@@ -149,17 +197,52 @@ export default function NewsReaderPage() {
             </div>
 
             {/* AI Action Buttons */}
-            <div className="flex flex-wrap gap-3 mb-10">
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-blue-600/20 to-blue-500/10 hover:from-blue-600/40 hover:to-blue-500/20 border border-blue-500/30 rounded-xl text-blue-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:-translate-y-0.5">
+            <div className="flex flex-wrap gap-3 mb-6">
+              <button 
+                onClick={() => handleAIAction("political_stance")}
+                disabled={aiLoading !== null}
+                className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-blue-600/20 to-blue-500/10 hover:from-blue-600/40 hover:to-blue-500/20 border border-blue-500/30 rounded-xl text-blue-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+                {aiLoading === "political_stance" && <div className="w-4 h-4 rounded-full border-2 border-blue-400 border-t-transparent animate-spin"/>}
                 Political Side
               </button>
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 hover:from-emerald-600/40 hover:to-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:-translate-y-0.5">
+              <button 
+                onClick={() => handleAIAction("summarise")}
+                disabled={aiLoading !== null}
+                className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 hover:from-emerald-600/40 hover:to-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+                {aiLoading === "summarise" && <div className="w-4 h-4 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin"/>}
                 Summarise
               </button>
-              <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/40 hover:to-purple-500/20 border border-purple-500/30 rounded-xl text-purple-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:-translate-y-0.5">
+              <button 
+                onClick={() => handleAIAction("change_tone")}
+                disabled={aiLoading !== null}
+                className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/40 hover:to-purple-500/20 border border-purple-500/30 rounded-xl text-purple-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
+                {aiLoading === "change_tone" && <div className="w-4 h-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin"/>}
                 Change Tone
               </button>
             </div>
+
+            {aiError && (
+              <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                {aiError}
+              </div>
+            )}
+
+            {aiFeedback && (
+              <div className={`mb-10 p-6 rounded-2xl border backdrop-blur-sm ${
+                aiFeedback.type === 'political_stance' 
+                  ? 'bg-blue-500/5 border-blue-500/20' 
+                  : 'bg-emerald-500/5 border-emerald-500/20'
+              }`}>
+                <h3 className={`text-xs uppercase tracking-widest font-bold mb-4 ${
+                  aiFeedback.type === 'political_stance' ? 'text-blue-400' : 'text-emerald-400'
+                }`}>
+                  AI {aiFeedback.type === 'political_stance' ? 'Political Analysis' : 'Generated Summary'}
+                </h3>
+                <div className="text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                  {aiFeedback.content}
+                </div>
+              </div>
+            )}
 
             <div
               className="article-content"
