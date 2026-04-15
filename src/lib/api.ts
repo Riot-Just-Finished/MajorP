@@ -127,15 +127,15 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
       },
       cache: 'no-store'
     });
-    
+
     if (!res.ok) {
       console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
-    
+
     const data: NewsApiResponse = await res.json();
-    return data.articles && data.articles.length > 0 
-      ? data.articles.map(mapNewsApiToArticle) 
+    return data.articles && data.articles.length > 0
+      ? data.articles.map(mapNewsApiToArticle)
       : dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);
@@ -158,15 +158,15 @@ export async function searchNews(query: string, max: number = 6): Promise<Articl
       },
       cache: 'no-store'
     });
-    
+
     if (!res.ok) {
       console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
-    
+
     const data: NewsApiResponse = await res.json();
-    return data.articles && data.articles.length > 0 
-      ? data.articles.map(mapNewsApiToArticle) 
+    return data.articles && data.articles.length > 0
+      ? data.articles.map(mapNewsApiToArticle)
       : dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);

@@ -45,12 +45,45 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
-    });
+    let responseText = "";
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+      });
+      responseText = response.text || "";
+    } catch (googleError: any) {
+      console.warn("Google native API failed, triggering OpenRouter fallback...", googleError?.status || googleError?.message);
+      
+      const openRouterKey = process.env.OPENROUTER_API_KEY;
+      if (!openRouterKey) {
+        throw new Error("Google API natively overwhelmed and no OpenRouter API key found in .env.");
+      }
 
-    return NextResponse.json({ result: response.text });
+      const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openRouterKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash", // Utilizing OpenRouter's edge-routing
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 4000 // Forces OpenRouter not to over-allocate budget reservations
+        })
+      });
+
+      if (!orRes.ok) {
+        const errJson = await orRes.json().catch(() => ({}));
+        throw new Error(`OpenRouter strict failure (${orRes.status}): ${JSON.stringify(errJson)}`);
+      }
+
+      const orData = await orRes.json();
+      responseText = orData.choices[0].message.content;
+    }
+
+    return NextResponse.json({ result: responseText });
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     return NextResponse.json({ error: error.message || "Failed to fetch response from Gemini API" }, { status: 500 });
