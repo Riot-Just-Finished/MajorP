@@ -1,6 +1,7 @@
 import { fetchTopHeadlines } from "@/lib/api";
 import NewsGrid from "@/components/NewsGrid";
 import HeroSection from "@/components/HeroSection";
+import RefreshButton from "@/components/RefreshButton";
 
 export const revalidate = 60;
 
@@ -16,6 +17,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
       <div className="flex flex-col h-[60vh] items-center justify-center space-y-4">
         <h1 className="text-3xl font-bold text-white">{title}</h1>
         <p className="text-zinc-400">No articles available for this category right now.</p>
+        <RefreshButton category={slug} />
       </div>
     );
   }
@@ -26,9 +28,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 lg:mt-10 space-y-12">
       <div>
-        <h1 className="text-4xl lg:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-red-500 to-orange-500 mb-8 inline-block drop-shadow-md">
-          {title}
-        </h1>
+        {/* Title row with refresh button */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-4xl lg:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-red-500 to-orange-500 inline-block drop-shadow-md">
+            {title}
+          </h1>
+          <RefreshButton category={slug} />
+        </div>
         <HeroSection article={heroArticle} />
       </div>
 

@@ -26,7 +26,7 @@ export default async function Home() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 lg:mt-10 space-y-12">
       <div className="flex justify-end mb-4">
-        <RefreshButton />
+        <RefreshButton category="politics" />
       </div>
       {/* Hero Section */}
       <HeroSection article={heroArticle} />

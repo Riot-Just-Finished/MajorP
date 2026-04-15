@@ -130,7 +130,7 @@ export default function NewsReaderPage() {
               try {
                 const { forceRefreshRoute } = await import('@/actions/revalidate');
                 await forceRefreshRoute('/news'); // Bypasses the generic cache using the server-action tags mapped earlier
-                const res = await fetch("/api/news");
+                const res = await fetch("/api/news?force=true");
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
                 setHeadlines(data);

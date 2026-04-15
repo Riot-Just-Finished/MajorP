@@ -33,6 +33,24 @@ export interface NewsApiResponse {
 
 const BASE_URL = "https://newsapi.org/v2";
 
+// ─── In-memory cache (survives across requests in the dev server process) ────
+const TTL = 10 * 60 * 1000; // 10 minutes
+const newsCache = new Map<string, { data: Article[]; ts: number }>();
+
+function getCached(key: string): Article[] | null {
+  const entry = newsCache.get(key);
+  if (entry && Date.now() - entry.ts < TTL) {
+    console.log(`[cache HIT] ${key}`);
+    return entry.data;
+  }
+  return null;
+}
+
+function setCache(key: string, data: Article[]): void {
+  newsCache.set(key, { data, ts: Date.now() });
+  console.log(`[cache SET] ${key} — ${data.length} articles`);
+}
+
 // Dummy data for fallback
 const dummyArticles: Article[] = [
   {
@@ -118,11 +136,14 @@ function isAllowedArticle(article: NewsApiArticle): boolean {
 }
 
 export async function fetchTopHeadlines(category: string = 'general', max: number = 6): Promise<Article[]> {
-  // If "politics" is passed historically, just redirect to searchNews since top-headlines
-  // doesn't support 'politics' as an official category.
+  // Politics redirects to search (not an official top-headlines category)
   if (category === 'politics') {
     return searchNews(category, max);
   }
+
+  const cacheKey = `headlines:${category}:${max}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
 
   const apiKey = process.env.NEWS_API_KEY;
   if (!apiKey) {
@@ -133,21 +154,20 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
   try {
     const randomPage = Math.floor(Math.random() * 3) + 1;
     const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max + 8}&page=${randomPage}`, {
-      headers: {
-        'X-Api-Key': apiKey,
-      },
+      headers: { 'X-Api-Key': apiKey },
       cache: 'no-store'
     });
 
     if (!res.ok) {
-      console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
+      console.warn(`NewsAPI error (${res.status}) for "${category}". Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
 
     const data: NewsApiResponse = await res.json();
     if (data.articles && data.articles.length > 0) {
-      const filtered = data.articles.filter(isAllowedArticle);
-      return filtered.slice(0, max).map(mapNewsApiToArticle);
+      const result = data.articles.filter(isAllowedArticle).slice(0, max).map(mapNewsApiToArticle);
+      setCache(cacheKey, result);
+      return result;
     }
     return dummyArticles.slice(0, max);
   } catch (error) {
@@ -157,6 +177,10 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
 }
 
 export async function searchNews(query: string, max: number = 6): Promise<Article[]> {
+  const cacheKey = `search:${query}:${max}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   const apiKey = process.env.NEWS_API_KEY;
   if (!apiKey) {
     console.warn("No NEWS_API_KEY found, using dummy data.");
@@ -166,21 +190,20 @@ export async function searchNews(query: string, max: number = 6): Promise<Articl
   try {
     const randomPage = Math.floor(Math.random() * 5) + 1;
     const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max + 8}&sortBy=publishedAt&page=${randomPage}`, {
-      headers: {
-        'X-Api-Key': apiKey,
-      },
+      headers: { 'X-Api-Key': apiKey },
       cache: 'no-store'
     });
 
     if (!res.ok) {
-      console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
+      console.warn(`NewsAPI search error (${res.status}) for "${query}". Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
 
     const data: NewsApiResponse = await res.json();
     if (data.articles && data.articles.length > 0) {
-      const filtered = data.articles.filter(isAllowedArticle);
-      return filtered.slice(0, max).map(mapNewsApiToArticle);
+      const result = data.articles.filter(isAllowedArticle).slice(0, max).map(mapNewsApiToArticle);
+      setCache(cacheKey, result);
+      return result;
     }
     return dummyArticles.slice(0, max);
   } catch (error) {
