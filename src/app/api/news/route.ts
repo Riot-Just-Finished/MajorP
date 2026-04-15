@@ -7,8 +7,9 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(`https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`, {
-      next: { revalidate: 3600 }
+    const randomPage = Math.floor(Math.random() * 5) + 1;
+    const res = await fetch(`https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}&page=${randomPage}`, {
+      cache: 'no-store'
     });
 
     if (!res.ok) {

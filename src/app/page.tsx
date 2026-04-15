@@ -2,6 +2,7 @@ import { searchNews } from "@/lib/api";
 import HeroSection from "@/components/HeroSection";
 import NewsGrid from "@/components/NewsGrid";
 import NewsSidebar from "@/components/NewsSidebar";
+import RefreshButton from "@/components/RefreshButton";
 
 // Force Next.js to revalidate this page frequently (e.g., every 60 seconds)
 export const revalidate = 60;
@@ -12,8 +13,9 @@ export default async function Home() {
 
   if (!articles || articles.length === 0) {
     return (
-      <div className="flex h-[50vh] items-center justify-center text-zinc-400">
+      <div className="flex h-[50vh] flex-col gap-6 items-center justify-center text-zinc-400">
         No articles available at the moment.
+        <RefreshButton />
       </div>
     );
   }
@@ -23,6 +25,9 @@ export default async function Home() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 lg:mt-10 space-y-12">
+      <div className="flex justify-end mb-4">
+        <RefreshButton />
+      </div>
       {/* Hero Section */}
       <HeroSection article={heroArticle} />
 

@@ -120,11 +120,12 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max}`, {
+    const randomPage = Math.floor(Math.random() * 3) + 1;
+    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max}&page=${randomPage}`, {
       headers: {
         'X-Api-Key': apiKey,
       },
-      next: { revalidate: 3600 }
+      cache: 'no-store'
     });
     
     if (!res.ok) {
@@ -150,11 +151,12 @@ export async function searchNews(query: string, max: number = 6): Promise<Articl
   }
 
   try {
-    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max}`, {
+    const randomPage = Math.floor(Math.random() * 5) + 1;
+    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max}&sortBy=publishedAt&page=${randomPage}`, {
       headers: {
         'X-Api-Key': apiKey,
       },
-      next: { revalidate: 3600 }
+      cache: 'no-store'
     });
     
     if (!res.ok) {

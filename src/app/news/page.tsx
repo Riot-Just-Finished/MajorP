@@ -120,7 +120,34 @@ export default function NewsReaderPage() {
     <div className="flex flex-col md:flex-row min-h-screen bg-black text-white pt-24 px-4 sm:px-6 lg:px-8 gap-6 max-w-screen-2xl mx-auto">
       {/* Sidebar: Headlines */}
       <aside className="w-full md:w-1/3 lg:w-1/4 flex flex-col border-r border-white/10 pr-4 overflow-y-auto max-h-[calc(100vh-100px)] custom-scrollbar">
-        <h2 className="text-2xl font-bold mb-6 text-red-500">Latest Headlines</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-red-500">Latest Headlines</h2>
+          <button 
+            onClick={async () => {
+              setLoadingHeadlines(true);
+              try {
+                const { forceRefreshRoute } = await import('@/actions/revalidate');
+                await forceRefreshRoute('/news'); // Bypasses the generic cache using the server-action tags mapped earlier
+                const res = await fetch("/api/news");
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                setHeadlines(data);
+              } catch (e: any) {
+                setHeadlinesError(e.message);
+              } finally {
+                setLoadingHeadlines(false);
+              }
+            }}
+            disabled={loadingHeadlines}
+            className="p-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-600 rounded-full text-zinc-300 transition-all duration-300 disabled:opacity-50"
+            title="Fetch New Articles"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loadingHeadlines ? "animate-spin text-red-500" : ""}>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+          </button>
+        </div>
 
         {loadingHeadlines && <div className="animate-pulse flex flex-col gap-4">
           {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-16 bg-white/5 rounded-xl"></div>)}
