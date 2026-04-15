@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     let responseText = "";
-    
+
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       responseText = response.text || "";
     } catch (googleError: any) {
       console.warn("Google native API failed, triggering OpenRouter fallback...", googleError?.status || googleError?.message);
-      
+
       const openRouterKey = process.env.OPENROUTER_API_KEY;
       if (!openRouterKey) {
         throw new Error("Google API natively overwhelmed and no OpenRouter API key found in .env.");
