@@ -106,6 +106,17 @@ function mapNewsApiToArticle(newsApiArticle: NewsApiArticle): Article {
   };
 }
 
+function isAllowedArticle(article: NewsApiArticle): boolean {
+  if (!article) return false;
+  const url = article.url?.toLowerCase() || "";
+  const sourceName = article.source?.name?.toLowerCase() || "";
+  
+  if (url.includes("alltoc.com")) return false;
+  if (sourceName.includes("political wire")) return false;
+  
+  return true;
+}
+
 export async function fetchTopHeadlines(category: string = 'general', max: number = 6): Promise<Article[]> {
   // If "politics" is passed historically, just redirect to searchNews since top-headlines
   // doesn't support 'politics' as an official category.
@@ -121,7 +132,7 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
 
   try {
     const randomPage = Math.floor(Math.random() * 3) + 1;
-    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max}&page=${randomPage}`, {
+    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max + 8}&page=${randomPage}`, {
       headers: {
         'X-Api-Key': apiKey,
       },
@@ -134,9 +145,11 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
     }
 
     const data: NewsApiResponse = await res.json();
-    return data.articles && data.articles.length > 0
-      ? data.articles.map(mapNewsApiToArticle)
-      : dummyArticles.slice(0, max);
+    if (data.articles && data.articles.length > 0) {
+      const filtered = data.articles.filter(isAllowedArticle);
+      return filtered.slice(0, max).map(mapNewsApiToArticle);
+    }
+    return dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);
     return dummyArticles.slice(0, max);
@@ -152,7 +165,7 @@ export async function searchNews(query: string, max: number = 6): Promise<Articl
 
   try {
     const randomPage = Math.floor(Math.random() * 5) + 1;
-    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max}&sortBy=publishedAt&page=${randomPage}`, {
+    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max + 8}&sortBy=publishedAt&page=${randomPage}`, {
       headers: {
         'X-Api-Key': apiKey,
       },
@@ -165,9 +178,11 @@ export async function searchNews(query: string, max: number = 6): Promise<Articl
     }
 
     const data: NewsApiResponse = await res.json();
-    return data.articles && data.articles.length > 0
-      ? data.articles.map(mapNewsApiToArticle)
-      : dummyArticles.slice(0, max);
+    if (data.articles && data.articles.length > 0) {
+      const filtered = data.articles.filter(isAllowedArticle);
+      return filtered.slice(0, max).map(mapNewsApiToArticle);
+    }
+    return dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);
     return dummyArticles.slice(0, max);

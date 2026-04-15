@@ -8,7 +8,7 @@ import RefreshButton from "@/components/RefreshButton";
 export const revalidate = 60;
 
 export default async function Home() {
-  const articles = await searchNews('politics', 10);
+  const articles = await searchNews('politics', 14);
   const trendingArticles = await searchNews('global politics', 4);
 
   if (!articles || articles.length === 0) {
@@ -21,7 +21,7 @@ export default async function Home() {
   }
 
   const heroArticle = articles[0];
-  const gridArticles = articles.slice(1, 7);
+  const gridArticles = articles.slice(1, 13);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 lg:mt-10 space-y-12">

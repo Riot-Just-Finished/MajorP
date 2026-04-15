@@ -18,7 +18,16 @@ export async function GET() {
     }
 
     const data = await res.json();
-    return NextResponse.json(data.articles);
+    const activeArticles = (data.articles || []).filter((article: any) => {
+      if (!article) return false;
+      const url = article.url?.toLowerCase() || "";
+      const sourceName = article.source?.name?.toLowerCase() || "";
+      if (url.includes("alltoc.com")) return false;
+      if (sourceName.includes("political wire")) return false;
+      return true;
+    });
+
+    return NextResponse.json(activeArticles);
   } catch (error: any) {
     console.error("API /news error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

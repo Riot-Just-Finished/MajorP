@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash", // Utilizing OpenRouter's edge-routing
           messages: [{ role: "user", content: prompt }],
-          max_tokens: 4000 // Forces OpenRouter not to over-allocate budget reservations
+          max_tokens: 6000 // Forces OpenRouter not to over-allocate budget reservations
         })
       });
 
