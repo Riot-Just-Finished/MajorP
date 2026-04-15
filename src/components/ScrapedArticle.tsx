@@ -61,9 +61,6 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
           <p className="text-sm opacity-80 mb-4">
             The target platform restricted automated reading (possibly due to a strict paywall, CAPTCHA, or inaccessible layout).
           </p>
-          <a href={url} target="_blank" rel="noreferrer" className="text-xs uppercase hover:underline text-orange-400 font-bold border border-orange-500/30 px-3 py-1.5 rounded-full">
-            Read Original Source directly &rarr;
-          </a>
         </div>
         
         {fallbackDescription && (
@@ -86,14 +83,6 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
         <div className="text-zinc-400 font-medium">
           {data?.byline ? `By ${data.byline}` : "Unknown Author"}
         </div>
-        <a 
-          href={url} 
-          target="_blank" 
-          rel="noreferrer"
-          className="text-sm text-red-400 hover:text-red-300 transition-colors uppercase tracking-wider font-semibold border border-red-500/20 px-4 py-1.5 rounded-full hover:bg-red-500/10"
-          >
-          View Original
-        </a>
       </div>
 
       <div 

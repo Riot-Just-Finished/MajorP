@@ -1,8 +1,15 @@
+"use client"
 import { Article } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
 
 export default function HeroSection({ article }: { article: Article }) {
+  const router = useRouter();
   if (!article) return null;
+
+  const openArticle = (url: string) => {
+    router.push(`/article?url=${encodeURIComponent(url)}`);
+  };
 
   const imageUrl = article.image || "https://images.unsplash.com/photo-1508921340878-ba53e1f016ec?auto=format&fit=crop&q=80";
   let timeAgo = "recently";
@@ -11,7 +18,11 @@ export default function HeroSection({ article }: { article: Article }) {
   } catch (e) { }
 
   return (
-    <a href={article.url} target="_blank" rel="noopener noreferrer" className="relative block group rounded-3xl overflow-hidden aspect-[16/9] sm:aspect-[21/9]">
+    <div 
+      onClick={() => openArticle(article.url)} 
+      className="relative block group rounded-3xl overflow-hidden aspect-[16/9] sm:aspect-[21/9]"
+      style={{ cursor: "pointer" }}
+    >
       <div className="absolute inset-0 bg-zinc-900">
         <img
           src={imageUrl}
@@ -45,6 +56,6 @@ export default function HeroSection({ article }: { article: Article }) {
           </p>
         </div>
       </div>
-    </a>
+    </div>
   );
 }

@@ -1,9 +1,17 @@
+"use client"
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Article } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 
 export default function NewsCard({ article, compact = false }: { article: Article, compact?: boolean }) {
+  const router = useRouter();
+
+  const openArticle = (url: string) => {
+    router.push(`/article?url=${encodeURIComponent(url)}`);
+  };
+
   // Use a default image if article.image is missing, or not a string. Some APIs return null.
   const imageUrl = article.image || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=60";
 
@@ -15,7 +23,11 @@ export default function NewsCard({ article, compact = false }: { article: Articl
   }
 
   return (
-    <a href={article.url} target="_blank" rel="noopener noreferrer" className="block group">
+    <div 
+      onClick={() => openArticle(article.url)} 
+      className="block group"
+      style={{ cursor: "pointer" }}
+    >
       <div className="flex flex-col gap-3">
         <div className={`overflow-hidden rounded-xl relative ${compact ? 'aspect-[4/3]' : 'aspect-video'}`}>
           <img
@@ -40,6 +52,6 @@ export default function NewsCard({ article, compact = false }: { article: Articl
           )}
         </div>
       </div>
-    </a>
+    </div>
   );
 }

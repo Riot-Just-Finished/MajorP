@@ -126,9 +126,6 @@ export default function NewsReaderPage() {
               <p className="text-sm opacity-80 mb-4">
                 The targeted publishing platform restricted automated reading (likely due to a strict paywall, CAPTCHA, or incompatible script-driven layout).
               </p>
-              <a href={activeHeadline.url} target="_blank" rel="noreferrer" className="text-xs uppercase hover:underline text-orange-400 font-bold">
-                Read Original Source directly &rarr;
-              </a>
             </div>
             {/* Fallback to description from the headlines feed */}
             {activeHeadline.description && (
@@ -149,14 +146,6 @@ export default function NewsReaderPage() {
               {activeArticleData.byline && (
                 <div className="text-zinc-400 font-medium">By {activeArticleData.byline}</div>
               )}
-              <a
-                href={activeHeadline?.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-red-400 hover:text-red-300 transition-colors"
-              >
-                View Original
-              </a>
             </div>
 
             <div
