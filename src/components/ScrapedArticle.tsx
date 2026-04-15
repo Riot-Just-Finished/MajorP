@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface ArticleData {
   title: string;
@@ -10,6 +11,7 @@ interface ArticleData {
 }
 
 export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription }: { url: string, fallbackTitle?: string, fallbackDescription?: string }) {
+  const router = useRouter();
   const [data, setData] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +160,20 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
           className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/40 hover:to-purple-500/20 border border-purple-500/30 rounded-xl text-purple-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2">
           {aiLoading === "change_tone" && <div className="w-4 h-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin"/>}
           Change Tone
+        </button>
+        <button
+          onClick={() => {
+            sessionStorage.setItem("chatbot_article_title", data?.title || fallbackTitle || "");
+            sessionStorage.setItem("chatbot_article_text", data?.textContent || fallbackDescription || "");
+            router.push("/chatbot");
+          }}
+          disabled={aiLoading !== null}
+          className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-violet-600/20 to-indigo-500/10 hover:from-violet-600/40 hover:to-indigo-500/20 border border-violet-500/30 rounded-xl text-violet-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.1)] hover:shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          Talk to Chatbot
         </button>
       </div>
 
