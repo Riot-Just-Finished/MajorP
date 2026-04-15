@@ -1,7 +1,6 @@
 export interface Source {
-  id?: string;
+  id?: string | null;
   name: string;
-  url: string;
 }
 
 export interface Article {
@@ -15,13 +14,24 @@ export interface Article {
   source: Source;
 }
 
-export interface GNewsResponse {
-  totalArticles: number;
-  articles: Article[];
+interface NewsApiArticle {
+  source: Source;
+  author: string | null;
+  title: string;
+  description: string | null;
+  url: string;
+  urlToImage: string | null;
+  publishedAt: string;
+  content: string | null;
 }
 
-const API_KEY = "735a5e2d04a659898129b6cb3daaa6ef";
-const BASE_URL = "https://gnews.io/api/v4";
+export interface NewsApiResponse {
+  status: string;
+  totalResults: number;
+  articles: NewsApiArticle[];
+}
+
+const BASE_URL = "https://newsapi.org/v2";
 
 // Dummy data for fallback
 const dummyArticles: Article[] = [
@@ -32,7 +42,7 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80",
     publishedAt: new Date().toISOString(),
-    source: { name: "Tech Daily", url: "#" }
+    source: { name: "Tech Daily" }
   },
   {
     title: "Market Rally: Tech Stocks Surge Amid Positive Earnings",
@@ -41,7 +51,7 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80",
     publishedAt: new Date(Date.now() - 3600000).toISOString(),
-    source: { name: "Financial Post", url: "#" }
+    source: { name: "Financial Post" }
   },
   {
     title: "Sustainable Architecture: The Rise of Green Skyscrapers",
@@ -50,7 +60,7 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&q=80",
     publishedAt: new Date(Date.now() - 7200000).toISOString(),
-    source: { name: "Design World", url: "#" }
+    source: { name: "Design World" }
   },
   {
     title: "New Battery Technology Could Double EV Range",
@@ -59,7 +69,7 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1593941707882-a5bba14938cb?auto=format&fit=crop&q=80",
     publishedAt: new Date(Date.now() - 10800000).toISOString(),
-    source: { name: "Auto Future", url: "#" }
+    source: { name: "Auto Future" }
   },
   {
     title: "Exploring the Deep Ocean: New Species Discovered",
@@ -68,7 +78,7 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?auto=format&fit=crop&q=80",
     publishedAt: new Date(Date.now() - 14400000).toISOString(),
-    source: { name: "Science Now", url: "#" }
+    source: { name: "Science Now" }
   },
   {
     title: "Global Coffee Shortage Driven By Extreme Climate",
@@ -77,23 +87,55 @@ const dummyArticles: Article[] = [
     url: "#",
     image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&q=80",
     publishedAt: new Date(Date.now() - 18000000).toISOString(),
-    source: { name: "Global News", url: "#" }
+    source: { name: "Global News" }
   }
 ];
 
+function mapNewsApiToArticle(newsApiArticle: NewsApiArticle): Article {
+  return {
+    title: newsApiArticle.title || "No Title",
+    description: newsApiArticle.description || "",
+    content: newsApiArticle.content || "",
+    url: newsApiArticle.url,
+    image: newsApiArticle.urlToImage || "https://images.unsplash.com/photo-1508921340878-ba53e1f016ec?auto=format&fit=crop&q=80",
+    publishedAt: newsApiArticle.publishedAt,
+    source: {
+      id: newsApiArticle.source?.id,
+      name: newsApiArticle.source?.name || "Unknown Source",
+    }
+  };
+}
+
 export async function fetchTopHeadlines(category: string = 'general', max: number = 6): Promise<Article[]> {
+  // If "politics" is passed historically, just redirect to searchNews since top-headlines
+  // doesn't support 'politics' as an official category.
+  if (category === 'politics') {
+    return searchNews(category, max);
+  }
+
+  const apiKey = process.env.NEWS_API_KEY;
+  if (!apiKey) {
+    console.warn("No NEWS_API_KEY found, using dummy data.");
+    return dummyArticles.slice(0, max);
+  }
+
   try {
-    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&lang=en&max=${max}&apikey=${API_KEY}`, {
-      next: { revalidate: 3600 } // Revalidate every hour
+    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max}`, {
+      headers: {
+        'X-Api-Key': apiKey,
+      },
+      next: { revalidate: 3600 }
     });
     
     if (!res.ok) {
-      console.warn("API limit probably reached or error occurred. Returning dummy data.");
+      console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
     
-    const data: GNewsResponse = await res.json();
-    return data.articles.length > 0 ? data.articles : dummyArticles.slice(0, max);
+    const data: NewsApiResponse = await res.json();
+    return data.articles && data.articles.length > 0 
+      ? data.articles.map(mapNewsApiToArticle) 
+      : dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);
     return dummyArticles.slice(0, max);
@@ -101,18 +143,29 @@ export async function fetchTopHeadlines(category: string = 'general', max: numbe
 }
 
 export async function searchNews(query: string, max: number = 6): Promise<Article[]> {
+  const apiKey = process.env.NEWS_API_KEY;
+  if (!apiKey) {
+    console.warn("No NEWS_API_KEY found, using dummy data.");
+    return dummyArticles.slice(0, max);
+  }
+
   try {
-    const res = await fetch(`${BASE_URL}/search?q=${encodeURIComponent(query)}&lang=en&max=${max}&apikey=${API_KEY}`, {
+    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max}`, {
+      headers: {
+        'X-Api-Key': apiKey,
+      },
       next: { revalidate: 3600 }
     });
     
     if (!res.ok) {
-      console.warn("API limit probably reached or error occurred. Returning dummy data.");
+      console.warn(`API limit probably reached or error occurred (${res.status}). Returning dummy data.`);
       return dummyArticles.slice(0, max);
     }
     
-    const data: GNewsResponse = await res.json();
-    return data.articles.length > 0 ? data.articles : dummyArticles.slice(0, max);
+    const data: NewsApiResponse = await res.json();
+    return data.articles && data.articles.length > 0 
+      ? data.articles.map(mapNewsApiToArticle) 
+      : dummyArticles.slice(0, max);
   } catch (error) {
     console.error("Error fetching news:", error);
     return dummyArticles.slice(0, max);

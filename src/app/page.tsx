@@ -1,4 +1,4 @@
-import { fetchTopHeadlines } from "@/lib/api";
+import { searchNews } from "@/lib/api";
 import HeroSection from "@/components/HeroSection";
 import NewsGrid from "@/components/NewsGrid";
 import NewsSidebar from "@/components/NewsSidebar";
@@ -7,8 +7,8 @@ import NewsSidebar from "@/components/NewsSidebar";
 export const revalidate = 60;
 
 export default async function Home() {
-  const articles = await fetchTopHeadlines('general', 10);
-  const techArticles = await fetchTopHeadlines('technology', 4);
+  const articles = await searchNews('politics', 10);
+  const trendingArticles = await searchNews('global politics', 4);
 
   if (!articles || articles.length === 0) {
     return (
@@ -29,11 +29,11 @@ export default async function Home() {
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2">
-          <NewsGrid articles={gridArticles} title="Top Stories" />
+          <NewsGrid articles={gridArticles} title="Top Political Stories" />
         </div>
         
         <div className="lg:col-span-1">
-          <NewsSidebar articles={techArticles} title="Trending in Tech" />
+          <NewsSidebar articles={trendingArticles} title="Trending Globally" />
         </div>
       </div>
     </div>

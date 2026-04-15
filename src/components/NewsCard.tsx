@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 export default function NewsCard({ article, compact = false }: { article: Article, compact?: boolean }) {
   // Use a default image if article.image is missing, or not a string. Some APIs return null.
   const imageUrl = article.image || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=60";
-  
+
   let timeAgo = "recently";
   try {
     timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true });

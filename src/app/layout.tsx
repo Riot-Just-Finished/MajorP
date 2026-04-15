@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.variable} min-h-screen bg-black text-zinc-100 font-sans antialiased overflow-x-hidden selection:bg-red-500/30 selection:text-red-200`}>
         {/* Background ambient effect */}
-        <div className="fixed inset-0 z-[-1] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black"></div>
+        <div className="fixed inset-0 z-[-1] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-900 via-black to-black"></div>
         <Header />
         <main className="pt-20 pb-16">
           {children}
