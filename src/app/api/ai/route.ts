@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         Title: ${title}
         Article Text: ${articleText.substring(0, 8000)}`; // limit token bleed
         break;
-      
+
       case "summarise":
         prompt = `Please provide a high-level summary of the following article. Format it entirely using 3-5 succinct bullet points. Do not include any intro or outro conversational text.
         
