@@ -79,10 +79,23 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
         {data?.title || fallbackTitle}
       </h1>
       
-      <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-10">
+      <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8">
         <div className="text-zinc-400 font-medium">
           {data?.byline ? `By ${data.byline}` : "Unknown Author"}
         </div>
+      </div>
+
+      {/* AI Action Buttons */}
+      <div className="flex flex-wrap gap-3 mb-10">
+        <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-blue-600/20 to-blue-500/10 hover:from-blue-600/40 hover:to-blue-500/20 border border-blue-500/30 rounded-xl text-blue-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:-translate-y-0.5">
+          Political Side
+        </button>
+        <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-emerald-600/20 to-emerald-500/10 hover:from-emerald-600/40 hover:to-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:-translate-y-0.5">
+          Summarise
+        </button>
+        <button className="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-purple-600/20 to-purple-500/10 hover:from-purple-600/40 hover:to-purple-500/20 border border-purple-500/30 rounded-xl text-purple-200 text-sm font-semibold tracking-wide transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:-translate-y-0.5">
+          Change Tone
+        </button>
       </div>
 
       <div 
