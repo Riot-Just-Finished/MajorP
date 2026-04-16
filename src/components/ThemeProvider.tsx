@@ -21,15 +21,32 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
     const saved = localStorage.getItem("theme") as Theme | null;
     const preferred = saved ?? "dark";
     setTheme(preferred);
-    document.documentElement.classList.toggle("dark", preferred === "dark");
+    applyTheme(preferred);
     setMounted(true);
   }, []);
+
+  function applyTheme(t: Theme) {
+    const html = document.documentElement;
+    const body = document.body;
+
+    if (t === "dark") {
+      html.classList.add("dark");
+      html.classList.remove("light");
+      body.style.background = "#000";
+      body.style.color = "#f4f4f5";
+    } else {
+      html.classList.remove("dark");
+      html.classList.add("light");
+      body.style.background = "#f8f9fa";
+      body.style.color = "#18181b";
+    }
+  }
 
   function toggleTheme() {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
     localStorage.setItem("theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    applyTheme(next);
   }
 
   // Prevent flash: hide content until theme is resolved

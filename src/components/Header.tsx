@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, Sun, Moon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useTheme } from "./ThemeProvider";
 
 const categories = [
   { name: "Home", path: "/" },
@@ -16,13 +17,18 @@ const categories = [
 
 export default function Header() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-md border-b border-white/10 transition-all duration-300">
+    <header className={`fixed top-0 w-full z-50 backdrop-blur-md border-b transition-all duration-300 ${
+      theme === "dark"
+        ? "bg-black/60 border-white/10"
+        : "bg-white/80 border-zinc-200"
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-4">
-            <button className="p-2 text-zinc-300 hover:text-white md:hidden">
+            <button className={`p-2 md:hidden ${theme === "dark" ? "text-zinc-300 hover:text-white" : "text-zinc-600 hover:text-black"}`}>
               <Menu size={24} />
             </button>
             <Link href="/" className="flex items-center">
@@ -41,8 +47,12 @@ export default function Header() {
                   href={category.path}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-white/10 text-white"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      ? theme === "dark"
+                        ? "bg-white/10 text-white"
+                        : "bg-zinc-200 text-black"
+                      : theme === "dark"
+                        ? "text-zinc-400 hover:text-white hover:bg-white/5"
+                        : "text-zinc-500 hover:text-black hover:bg-zinc-100"
                   }`}
                 >
                   {category.name}
@@ -51,8 +61,25 @@ export default function Header() {
             })}
           </nav>
 
-          <div className="flex items-center">
-            <button className="p-2 text-zinc-300 hover:text-white transition-colors rounded-full hover:bg-white/10">
+          <div className="flex items-center gap-1">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-full transition-colors ${
+                theme === "dark"
+                  ? "text-zinc-300 hover:text-yellow-400 hover:bg-white/10"
+                  : "text-zinc-600 hover:text-orange-500 hover:bg-zinc-100"
+              }`}
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <button className={`p-2 rounded-full transition-colors ${
+              theme === "dark"
+                ? "text-zinc-300 hover:text-white hover:bg-white/10"
+                : "text-zinc-600 hover:text-black hover:bg-zinc-100"
+            }`}>
               <Search size={20} />
             </button>
           </div>

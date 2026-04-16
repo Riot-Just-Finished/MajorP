@@ -6,8 +6,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 
 interface RefreshButtonProps {
-  /** The category slug (e.g. "technology", "sports", "politics").
-   *  Omit or pass "general" for the homepage / breaking-news feed. */
   category?: string;
 }
 
@@ -19,16 +17,13 @@ export default function RefreshButton({ category = "general" }: RefreshButtonPro
   async function handleRefresh() {
     setLoading(true);
     try {
-      // 1. Bust our in-memory Map cache for this category
-      await fetch(`/api/news?force=true&category=${category}`);
-
-      // 2. Invalidate Next.js SSR cache so the page re-fetches from lib/api.ts
+      // 1. Bust in-memory cache + revalidate Next.js page cache (single server action)
       await forceRefreshRoute(pathname);
 
-      // 3. Trigger a client-side re-render with fresh SSR data
+      // 2. Trigger a client-side re-render with fresh SSR data
       router.refresh();
     } finally {
-      setTimeout(() => setLoading(false), 500);
+      setTimeout(() => setLoading(false), 800);
     }
   }
 
