@@ -1,3 +1,5 @@
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export interface Source {
   id?: string | null;
   name: string;
@@ -14,26 +16,52 @@ export interface Article {
   source: Source;
 }
 
-interface NewsApiArticle {
-  source: Source;
-  author: string | null;
-  title: string;
-  description: string | null;
-  url: string;
-  urlToImage: string | null;
-  publishedAt: string;
-  content: string | null;
-}
+// ─── RSS feed map ─────────────────────────────────────────────────────────────
+// Each category maps to one or more public RSS feeds (tried in order).
+const RSS_FEEDS: Record<string, string[]> = {
+  politics: [
+    "https://feeds.bbci.co.uk/news/politics/rss.xml",
+    "https://rss.politico.com/politics-news.xml",
+    "https://www.theguardian.com/politics/rss",
+  ],
+  technology: [
+    "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "https://www.theguardian.com/technology/rss",
+    "https://techcrunch.com/feed/",
+  ],
+  business: [
+    "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "https://www.theguardian.com/business/rss",
+    "https://feeds.reuters.com/reuters/businessNews",
+  ],
+  sports: [
+    "https://feeds.bbci.co.uk/sport/rss.xml",
+    "https://www.theguardian.com/sport/rss",
+  ],
+  science: [
+    "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    "https://www.theguardian.com/science/rss",
+    "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+  ],
+  health: [
+    "https://feeds.bbci.co.uk/news/health/rss.xml",
+    "https://www.theguardian.com/society/rss",
+  ],
+  entertainment: [
+    "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+    "https://www.theguardian.com/culture/rss",
+  ],
+  general: [
+    "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+    "https://www.theguardian.com/world/rss",
+  ],
+};
 
-export interface NewsApiResponse {
-  status: string;
-  totalResults: number;
-  articles: NewsApiArticle[];
-}
+// Default fallback feeds for unknown categories
+const DEFAULT_FEEDS = RSS_FEEDS.general;
 
-const BASE_URL = "https://newsapi.org/v2";
-
-// ─── In-memory cache (survives across requests in the dev server process) ────
+// ─── In-memory cache ──────────────────────────────────────────────────────────
 const TTL = 10 * 60 * 1000; // 10 minutes
 const newsCache = new Map<string, { data: Article[]; ts: number }>();
 
@@ -51,7 +79,7 @@ function setCache(key: string, data: Article[]): void {
   console.log(`[cache SET] ${key} — ${data.length} articles`);
 }
 
-// Dummy data for fallback
+// ─── Fallback dummy data ──────────────────────────────────────────────────────
 const dummyArticles: Article[] = [
   {
     title: "Global Tech Summit Unveils Next-Gen Artificial Intelligence",
@@ -109,105 +137,214 @@ const dummyArticles: Article[] = [
   }
 ];
 
-function mapNewsApiToArticle(newsApiArticle: NewsApiArticle): Article {
-  return {
-    title: newsApiArticle.title || "No Title",
-    description: newsApiArticle.description || "",
-    content: newsApiArticle.content || "",
-    url: newsApiArticle.url,
-    image: newsApiArticle.urlToImage || "https://images.unsplash.com/photo-1508921340878-ba53e1f016ec?auto=format&fit=crop&q=80",
-    publishedAt: newsApiArticle.publishedAt,
-    source: {
-      id: newsApiArticle.source?.id,
-      name: newsApiArticle.source?.name || "Unknown Source",
+// ─── RSS XML parser ───────────────────────────────────────────────────────────
+// Pure regex/string based — works in any Node.js/Edge runtime, no extra deps.
+
+function extractText(xml: string, tag: string): string {
+  // Try CDATA first, then plain content
+  const cdataRe = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, "i");
+  const plainRe = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
+  const cdataMatch = cdataRe.exec(xml);
+  if (cdataMatch) return cdataMatch[1].trim();
+  const plainMatch = plainRe.exec(xml);
+  return plainMatch ? stripHtml(plainMatch[1].trim()) : "";
+}
+
+function extractAttr(xml: string, tag: string, attr: string): string {
+  const re = new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']+)["'][^>]*>`, "i");
+  const m = re.exec(xml);
+  return m ? m[1] : "";
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").trim();
+}
+
+function extractImageFromItem(itemXml: string): string {
+  // 1. <media:content url="..." />
+  const mediaUrl = extractAttr(itemXml, "media:content", "url");
+  if (mediaUrl) return mediaUrl;
+
+  // 2. <media:thumbnail url="..." />
+  const thumbUrl = extractAttr(itemXml, "media:thumbnail", "url");
+  if (thumbUrl) return thumbUrl;
+
+  // 3. <enclosure url="..." type="image/..." />
+  const encRe = /<enclosure[^>]*url=["']([^"']+)["'][^>]*type=["']image[^"']*["'][^>]*\/?>/i;
+  const encMatch = encRe.exec(itemXml);
+  if (encMatch) return encMatch[1];
+
+  // 4. First <img src="..." /> inside description/content CDATA
+  const imgRe = /<img[^>]+src=["']([^"']+)["']/i;
+  const descText = extractText(itemXml, "description") || extractText(itemXml, "content:encoded");
+  const imgMatch = imgRe.exec(descText + itemXml);
+  if (imgMatch) return imgMatch[1];
+
+  return "";
+}
+
+function parseRssItems(xml: string, sourceName: string): Article[] {
+  // Split into <item> blocks
+  const itemRe = /<item[\s>]([\s\S]*?)<\/item>/gi;
+  const articles: Article[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = itemRe.exec(xml)) !== null) {
+    const itemXml = match[1];
+
+    const title = stripHtml(extractText(itemXml, "title"));
+    const url = extractText(itemXml, "link") || extractAttr(itemXml, "link", "href");
+    const description = stripHtml(extractText(itemXml, "description"));
+    const content = extractText(itemXml, "content:encoded") || description;
+    const pubDate = extractText(itemXml, "pubDate") || extractText(itemXml, "dc:date") || extractText(itemXml, "published");
+    const image = extractImageFromItem(itemXml);
+
+    if (!title || !url) continue;
+
+    let publishedAt: string;
+    try {
+      publishedAt = pubDate ? new Date(pubDate).toISOString() : new Date().toISOString();
+    } catch {
+      publishedAt = new Date().toISOString();
     }
-  };
-}
 
-function isAllowedArticle(article: NewsApiArticle): boolean {
-  if (!article) return false;
-  const url = article.url?.toLowerCase() || "";
-  const sourceName = article.source?.name?.toLowerCase() || "";
-  
-  if (url.includes("alltoc.com")) return false;
-  if (sourceName.includes("political wire")) return false;
-  
-  return true;
-}
-
-export async function fetchTopHeadlines(category: string = 'general', max: number = 6): Promise<Article[]> {
-  // Politics redirects to search (not an official top-headlines category)
-  if (category === 'politics') {
-    return searchNews(category, max);
+    articles.push({
+      title,
+      description,
+      content: content || description,
+      url,
+      image: image || "https://images.unsplash.com/photo-1508921340878-ba53e1f016ec?auto=format&fit=crop&q=80",
+      publishedAt,
+      source: { name: sourceName },
+    });
   }
 
-  const cacheKey = `headlines:${category}:${max}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  return articles;
+}
 
-  const apiKey = process.env.NEWS_API_KEY;
-  if (!apiKey) {
-    console.warn("No NEWS_API_KEY found, using dummy data.");
-    return dummyArticles.slice(0, max);
-  }
-
+function extractSourceName(feedUrl: string): string {
   try {
-    const randomPage = Math.floor(Math.random() * 3) + 1;
-    const res = await fetch(`${BASE_URL}/top-headlines?category=${category}&language=en&pageSize=${max + 8}&page=${randomPage}`, {
-      headers: { 'X-Api-Key': apiKey },
-      cache: 'no-store'
+    const host = new URL(feedUrl).hostname.replace(/^www\.|^feeds\./, "");
+    // prettify known hostnames
+    const map: Record<string, string> = {
+      "bbci.co.uk": "BBC News",
+      "theguardian.com": "The Guardian",
+      "techcrunch.com": "TechCrunch",
+      "politico.com": "Politico",
+      "reuters.com": "Reuters",
+      "nasa.gov": "NASA",
+      "nytimes.com": "New York Times",
+    };
+    for (const [key, name] of Object.entries(map)) {
+      if (host.includes(key)) return name;
+    }
+    return host.split(".")[0].charAt(0).toUpperCase() + host.split(".")[0].slice(1);
+  } catch {
+    return "News";
+  }
+}
+
+// ─── Fetch & parse one RSS feed ───────────────────────────────────────────────
+async function fetchRssFeed(feedUrl: string): Promise<Article[]> {
+  const sourceName = extractSourceName(feedUrl);
+  try {
+    const res = await fetch(feedUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+      },
+      cache: "no-store",
+      // 8-second timeout (AbortSignal.timeout requires Node 17.5+)
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
-      console.warn(`NewsAPI error (${res.status}) for "${category}". Returning dummy data.`);
-      return dummyArticles.slice(0, max);
+      console.warn(`[RSS] ${feedUrl} returned ${res.status}`);
+      return [];
     }
 
-    const data: NewsApiResponse = await res.json();
-    if (data.articles && data.articles.length > 0) {
-      const result = data.articles.filter(isAllowedArticle).slice(0, max).map(mapNewsApiToArticle);
-      setCache(cacheKey, result);
-      return result;
-    }
-    return dummyArticles.slice(0, max);
-  } catch (error) {
-    console.error("Error fetching news:", error);
-    return dummyArticles.slice(0, max);
+    const xml = await res.text();
+    const items = parseRssItems(xml, sourceName);
+    console.log(`[RSS] ${feedUrl} → ${items.length} items`);
+    return items;
+  } catch (err) {
+    console.warn(`[RSS] Failed to fetch ${feedUrl}:`, (err as Error).message);
+    return [];
   }
+}
+
+// ─── Multi-feed aggregator ────────────────────────────────────────────────────
+async function fetchFromFeeds(feeds: string[], max: number): Promise<Article[]> {
+  // Try feeds concurrently; merge & deduplicate by URL
+  const results = await Promise.all(feeds.map(fetchRssFeed));
+  const seen = new Set<string>();
+  const merged: Article[] = [];
+
+  for (const items of results) {
+    for (const item of items) {
+      if (!seen.has(item.url)) {
+        seen.add(item.url);
+        merged.push(item);
+      }
+    }
+  }
+
+  // Sort newest first
+  merged.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+  return merged.slice(0, max);
+}
+
+// ─── Public API (same signatures as before) ───────────────────────────────────
+
+export async function fetchTopHeadlines(category: string = "general", max: number = 6): Promise<Article[]> {
+  const cacheKey = `rss:headlines:${category}:${max}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const feeds = RSS_FEEDS[category] ?? DEFAULT_FEEDS;
+  const articles = await fetchFromFeeds(feeds, max);
+
+  if (articles.length > 0) {
+    setCache(cacheKey, articles);
+    return articles;
+  }
+
+  console.warn(`[RSS] No articles for category "${category}", using dummy data.`);
+  return dummyArticles.slice(0, max);
 }
 
 export async function searchNews(query: string, max: number = 6): Promise<Article[]> {
-  const cacheKey = `search:${query}:${max}`;
+  // Map common query keywords to category feeds
+  const queryLower = query.toLowerCase();
+  let category = "general";
+  for (const cat of Object.keys(RSS_FEEDS)) {
+    if (queryLower.includes(cat)) {
+      category = cat;
+      break;
+    }
+  }
+
+  const cacheKey = `rss:search:${query}:${max}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const apiKey = process.env.NEWS_API_KEY;
-  if (!apiKey) {
-    console.warn("No NEWS_API_KEY found, using dummy data.");
-    return dummyArticles.slice(0, max);
+  const feeds = RSS_FEEDS[category] ?? DEFAULT_FEEDS;
+  const articles = await fetchFromFeeds(feeds, max * 3); // fetch more so we can filter
+
+  // Filter by query keyword (loose match on title/description)
+  const keywords = query.toLowerCase().split(/\s+/);
+  const filtered = articles.filter(a => {
+    const text = (a.title + " " + a.description).toLowerCase();
+    return keywords.some(kw => text.includes(kw));
+  });
+
+  const result = (filtered.length >= 3 ? filtered : articles).slice(0, max);
+
+  if (result.length > 0) {
+    setCache(cacheKey, result);
+    return result;
   }
 
-  try {
-    const randomPage = Math.floor(Math.random() * 5) + 1;
-    const res = await fetch(`${BASE_URL}/everything?q=${encodeURIComponent(query)}&language=en&pageSize=${max + 8}&sortBy=publishedAt&page=${randomPage}`, {
-      headers: { 'X-Api-Key': apiKey },
-      cache: 'no-store'
-    });
-
-    if (!res.ok) {
-      console.warn(`NewsAPI search error (${res.status}) for "${query}". Returning dummy data.`);
-      return dummyArticles.slice(0, max);
-    }
-
-    const data: NewsApiResponse = await res.json();
-    if (data.articles && data.articles.length > 0) {
-      const result = data.articles.filter(isAllowedArticle).slice(0, max).map(mapNewsApiToArticle);
-      setCache(cacheKey, result);
-      return result;
-    }
-    return dummyArticles.slice(0, max);
-  } catch (error) {
-    console.error("Error fetching news:", error);
-    return dummyArticles.slice(0, max);
-  }
+  return dummyArticles.slice(0, max);
 }
