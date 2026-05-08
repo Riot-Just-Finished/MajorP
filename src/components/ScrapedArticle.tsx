@@ -20,6 +20,7 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiFeedback, setAiFeedback] = useState<{ type: string, content: string } | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<'gemini' | 'local'>('gemini');
 
   useEffect(() => {
     if (!url) return;
@@ -60,7 +61,8 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
     }
 
     try {
-      const res = await fetch('/api/ai', {
+      const endpoint = selectedModel === 'local' ? '/api/ai-local' : '/api/ai';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,9 +134,41 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
         {data?.title || fallbackTitle}
       </h1>
 
-      <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-8">
-        <div className="text-zinc-400 font-medium">
-          {data?.byline ? `By ${data.byline}` : "Unknown Author"}
+      <div className="border-b border-white/10 pb-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="text-zinc-400 font-medium">
+            {data?.byline ? `By ${data.byline}` : "Unknown Author"}
+          </div>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => setSelectedModel('gemini')}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 flex items-center gap-2 border ${
+              selectedModel === 'gemini'
+                ? 'bg-gradient-to-r from-cyan-600/50 to-sky-500/35 border-cyan-400/60 text-cyan-100 shadow-[0_0_25px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400/30'
+                : 'bg-gradient-to-r from-cyan-600/15 to-sky-500/8 border-cyan-500/20 text-cyan-300/60 hover:from-cyan-600/25 hover:to-sky-500/15 hover:border-cyan-500/30 hover:text-cyan-200'
+            } hover:-translate-y-0.5`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+            Use Gemini
+            {selectedModel === 'gemini' && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
+          </button>
+          <button
+            onClick={() => setSelectedModel('local')}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 flex items-center gap-2 border ${
+              selectedModel === 'local'
+                ? 'bg-gradient-to-r from-amber-600/50 to-orange-500/35 border-amber-400/60 text-amber-100 shadow-[0_0_25px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/30'
+                : 'bg-gradient-to-r from-amber-600/15 to-orange-500/8 border-amber-500/20 text-amber-300/60 hover:from-amber-600/25 hover:to-orange-500/15 hover:border-amber-500/30 hover:text-amber-200'
+            } hover:-translate-y-0.5`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            Use Local Model
+            {selectedModel === 'local' && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+          </button>
         </div>
       </div>
 
