@@ -20,11 +20,10 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className={`fixed top-0 w-full z-50 backdrop-blur-md border-b transition-all duration-300 ${
-      theme === "dark"
+    <header className={`fixed top-0 w-full z-50 backdrop-blur-md border-b transition-all duration-300 ${theme === "dark"
         ? "bg-black/60 border-white/10"
         : "bg-white/80 border-zinc-200"
-    }`}>
+      }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-4">
@@ -45,15 +44,14 @@ export default function Header() {
                 <Link
                   key={category.name}
                   href={category.path}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    isActive
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${isActive
                       ? theme === "dark"
                         ? "bg-white/10 text-white"
                         : "bg-zinc-200 text-black"
                       : theme === "dark"
                         ? "text-zinc-400 hover:text-white hover:bg-white/5"
                         : "text-zinc-500 hover:text-black hover:bg-zinc-100"
-                  }`}
+                    }`}
                 >
                   {category.name}
                 </Link>
@@ -65,21 +63,19 @@ export default function Header() {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-full transition-colors ${
-                theme === "dark"
+              className={`p-2 rounded-full transition-colors ${theme === "dark"
                   ? "text-zinc-300 hover:text-yellow-400 hover:bg-white/10"
                   : "text-zinc-600 hover:text-orange-500 hover:bg-zinc-100"
-              }`}
+                }`}
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
-            <button className={`p-2 rounded-full transition-colors ${
-              theme === "dark"
+            <button className={`p-2 rounded-full transition-colors ${theme === "dark"
                 ? "text-zinc-300 hover:text-white hover:bg-white/10"
                 : "text-zinc-600 hover:text-black hover:bg-zinc-100"
-            }`}>
+              }`}>
               <Search size={20} />
             </button>
           </div>

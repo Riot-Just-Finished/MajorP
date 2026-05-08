@@ -185,8 +185,8 @@ export default function ScrapedArticle({ url, fallbackTitle, fallbackDescription
 
       {aiFeedback && (
         <div className={`mb-10 p-6 rounded-2xl border backdrop-blur-sm ${aiFeedback.type === 'political_stance'
-            ? 'bg-blue-500/5 border-blue-500/20'
-            : 'bg-emerald-500/5 border-emerald-500/20'
+          ? 'bg-blue-500/5 border-blue-500/20'
+          : 'bg-emerald-500/5 border-emerald-500/20'
           }`}>
           <h3 className={`text-xs uppercase tracking-widest font-bold mb-4 ${aiFeedback.type === 'political_stance' ? 'text-blue-400' : 'text-emerald-400'
             }`}>

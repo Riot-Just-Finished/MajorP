@@ -23,8 +23,8 @@ export default function NewsCard({ article, compact = false }: { article: Articl
   }
 
   return (
-    <div 
-      onClick={() => openArticle(article.url)} 
+    <div
+      onClick={() => openArticle(article.url)}
       className="block group"
       style={{ cursor: "pointer" }}
     >
